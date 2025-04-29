@@ -9,7 +9,9 @@ interface WorkAreaWiseResponse {
   total_workers: number;
 }
 
-export const revalidate = 3600; // 1 hour in seconds
+// Disable static rendering for this route
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,9 +53,7 @@ export async function GET(request: NextRequest) {
       }`,
       {
         signal: controller.signal,
-        next: {
-          revalidate: API_CONFIG.CACHE_TTL,
-        },
+        cache: "no-store", // Disable caching for dynamic data
       }
     );
 
