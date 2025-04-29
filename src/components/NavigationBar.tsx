@@ -3,9 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/authStore";
 
 export function NavigationBar() {
   const pathname = usePathname();
+  const isAuthenticated = useAuthStore(
+    (state: { isAuthenticated: boolean }) => state.isAuthenticated
+  );
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const links = [
     { href: "/", label: "Users" },
@@ -16,7 +24,7 @@ export function NavigationBar() {
   return (
     <nav className="border-b">
       <div className="container mx-auto px-4">
-        <div className="flex h-12 items-center">
+        <div className="flex h-12 items-center justify-between">
           <div className="mr-8">
             <h1 className="text-xl font-bold">GigSaathi</h1>
           </div>

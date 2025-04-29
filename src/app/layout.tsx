@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import {  Roboto_Slab } from "next/font/google";
+import { Roboto_Slab } from "next/font/google";
 import "./globals.css";
 import { NavigationBar } from "@/components/NavigationBar";
+import { AuthProvider } from "@/providers/AuthProvider";
 
 const robotoSlab = Roboto_Slab({
   variable: "--font-roboto-slab",
@@ -23,8 +24,10 @@ export default function RootLayout({
       <body
         className={`${robotoSlab.className} antialiased min-h-screen bg-background`}
       >
-        <NavigationBar />
-        <div className="container mx-auto px-4 py-6">{children}</div>
+        <AuthProvider>
+          <NavigationBar />
+          <div className="container mx-auto px-4 py-6">{children}</div>
+        </AuthProvider>
       </body>
     </html>
   );
