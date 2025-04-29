@@ -13,25 +13,43 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { useEffect, useState, useCallback } from "react";
-import { Search, Loader2, X } from "lucide-react";
+import { Search, Loader2, X, Calendar } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import debounce from "lodash/debounce";
 import { Button } from "@/components/ui/button";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
-interface User {
+interface WeeklyEarning {
   id: string;
-  first_name: string;
-  last_name: string;
+  user_id: string;
   mobile_number: string;
-  work_type: string;
   work_area: string;
+  work_hours: number;
+  earnings: number;
+  expenses: number;
+  week_start_date: string;
+  week_end_date: string;
   primary_company: string;
   created_at: string;
 }
 
-export function DataTable() {
-  const [data, setData] = useState<User[] | null>(null);
+interface WeeklyEarningsResponse {
+  data: WeeklyEarning[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export function EarningsDataTable() {
+  const [data, setData] = useState<WeeklyEarningsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -40,12 +58,14 @@ export function DataTable() {
   const [isSearching, setIsSearching] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
 
   const fetchData = async (searchParams: URLSearchParams) => {
     try {
       setIsSearching(true);
       setError(null);
-      const response = await fetch(`/api/flows?${searchParams}`);
+      const response = await fetch(`/api/weekly-earnings?${searchParams}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(
@@ -56,7 +76,7 @@ export function DataTable() {
       if (result.error) {
         throw new Error(result.error);
       }
-      setData(result.data);
+      setData(result);
       setTotalPages(result.totalPages);
       setTotalRecords(result.total);
     } catch (error) {
@@ -100,12 +120,18 @@ export function DataTable() {
     if (mobileNumber.trim()) {
       searchParams.append("mobile_number", mobileNumber.trim());
     }
+    if (startDate) {
+      searchParams.append("start_date", startDate.toISOString());
+    }
+    if (endDate) {
+      searchParams.append("end_date", endDate.toISOString());
+    }
 
     debouncedSearch(searchParams);
     return () => {
       debouncedSearch.cancel();
     };
-  }, [page, workAreaSearch, mobileNumber, debouncedSearch]);
+  }, [page, workAreaSearch, mobileNumber, startDate, endDate, debouncedSearch]);
 
   const handleWorkAreaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setWorkAreaSearch(e.target.value);
@@ -113,7 +139,6 @@ export function DataTable() {
   };
 
   const handleMobileNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow numbers and + sign
     const value = e.target.value.replace(/[^\d+]/g, "");
     setMobileNumber(value);
     setPage(1);
@@ -129,15 +154,15 @@ export function DataTable() {
     setPage(1);
   };
 
-  const clearAllFilters = () => {
-    setWorkAreaSearch("");
-    setMobileNumber("");
+  const clearDateRange = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
     setPage(1);
   };
 
   if (loading && !data) {
     return (
-      <Card className="p-4">
+      <Card className="p-6">
         <div className="h-[400px] flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -146,7 +171,7 @@ export function DataTable() {
   }
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className="p-6 space-y-6">
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -154,29 +179,17 @@ export function DataTable() {
         </Alert>
       )}
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">User Records</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">
               {totalRecords} records found
             </span>
-            {(workAreaSearch || mobileNumber) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearAllFilters}
-                className="flex items-center gap-2"
-              >
-                <X className="h-4 w-4" />
-                Clear Filters
-              </Button>
-            )}
           </div>
         </div>
 
-        <div className="flex gap-4">
-          <div className="relative flex-1 max-w-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
+          <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by mobile number..."
@@ -196,7 +209,7 @@ export function DataTable() {
               </button>
             )}
           </div>
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by work area..."
@@ -216,6 +229,66 @@ export function DataTable() {
               </button>
             )}
           </div>
+          <div className="flex gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {startDate ? (
+                    format(startDate, "PPP")
+                  ) : (
+                    <span>Start Date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <CalendarComponent
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !endDate && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "PPP") : <span>End Date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <CalendarComponent
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            {(startDate || endDate) && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={clearDateRange}
+                className="flex-shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -223,32 +296,52 @@ export function DataTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Mobile Number</TableHead>
-              <TableHead>Work Type</TableHead>
-              <TableHead>Work Area</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead>Created At</TableHead>
+              <TableHead className="w-[150px]">Mobile Number</TableHead>
+              <TableHead className="w-[150px]">Work Area</TableHead>
+              <TableHead className="w-[150px]">Company</TableHead>
+              <TableHead className="text-right w-[100px]">Work Hours</TableHead>
+              <TableHead className="text-right w-[120px]">Earnings</TableHead>
+              <TableHead className="text-right w-[120px]">Expenses</TableHead>
+              <TableHead className="text-right w-[120px]">
+                Net Earnings
+              </TableHead>
+              <TableHead className="w-[120px]">Week Start</TableHead>
+              <TableHead className="w-[120px]">Week End</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{`${user.first_name} ${user.last_name}`}</TableCell>
-                <TableCell>{user.mobile_number}</TableCell>
-                <TableCell>{user.work_type}</TableCell>
-                <TableCell>{user.work_area}</TableCell>
-                <TableCell>{user.primary_company}</TableCell>
+            {data?.data?.map((earning) => (
+              <TableRow key={earning.id}>
+                <TableCell className="font-medium">
+                  {earning.mobile_number}
+                </TableCell>
+                <TableCell>{earning.work_area}</TableCell>
+                <TableCell>{earning.primary_company}</TableCell>
+                <TableCell className="text-right">
+                  {earning.work_hours.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right">
+                  ₹{earning.earnings.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right">
+                  ₹{earning.expenses.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  ₹{(earning.earnings - earning.expenses).toLocaleString()}
+                </TableCell>
                 <TableCell>
-                  {new Date(user.created_at).toLocaleDateString()}
+                  {new Date(earning.week_start_date).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  {new Date(earning.week_end_date).toLocaleDateString()}
                 </TableCell>
               </TableRow>
             ))}
-            {(!data || data.length === 0) && (
+            {(!data?.data || data.data.length === 0) && (
               <TableRow>
                 <TableCell
-                  colSpan={6}
-                  className="text-center py-6 text-muted-foreground"
+                  colSpan={9}
+                  className="text-center py-8 text-muted-foreground"
                 >
                   No records found
                 </TableCell>
