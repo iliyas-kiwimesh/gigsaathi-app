@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE_URL = "http://13.203.30.66:3000";
+const API_BASE_URL = "http://65.2.116.189:3000";
 
 export async function GET(request: NextRequest) {
   try {
