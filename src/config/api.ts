@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://65.2.116.189:3000",
+  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gigsaathi.com",
   TIMEOUT: 10000, // 10 seconds
   CACHE_TTL: 60 * 5, // 5 minutes
 } as const;
