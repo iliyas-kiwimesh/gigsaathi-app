@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gigsaathi.com";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gigsaathi.com";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,6 +10,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get("limit") || "10";
     const work_area = searchParams.get("work_area");
     const mobile_number = searchParams.get("mobile_number");
+    const start_date = searchParams.get("start_date");
 
     // Build query params
     const queryParams = new URLSearchParams({
@@ -21,6 +23,9 @@ export async function GET(request: NextRequest) {
     }
     if (mobile_number) {
       queryParams.append("mobile_number", mobile_number);
+    }
+    if (start_date) {
+      queryParams.append("start_date", start_date);
     }
 
     const response = await fetch(`${API_BASE_URL}/flows?${queryParams}`);
