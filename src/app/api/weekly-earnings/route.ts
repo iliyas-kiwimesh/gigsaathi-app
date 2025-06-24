@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gigsaathi.com";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gigsaathi.com";
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,6 +60,7 @@ export async function GET(request: NextRequest) {
         expenses: item.expenses || 0,
         primary_company: item.primary_company || "N/A",
         work_area: item.work_area || "N/A",
+        screen_shot: item.screen_shot || null,
       })),
     };
 

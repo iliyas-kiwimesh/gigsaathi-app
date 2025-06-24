@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface WeeklyEarning {
   id: string;
@@ -39,6 +40,7 @@ interface WeeklyEarning {
   week_end_date: string;
   primary_company: string;
   created_at: string;
+  screen_shot?: string;
 }
 
 interface WeeklyEarningsResponse {
@@ -169,6 +171,8 @@ export function EarningsDataTable() {
       </Card>
     );
   }
+
+  console.log(data);
 
   return (
     <Card className="p-6 space-y-6">
@@ -307,6 +311,7 @@ export function EarningsDataTable() {
               </TableHead>
               <TableHead className="w-[120px]">Week Start</TableHead>
               <TableHead className="w-[120px]">Week End</TableHead>
+              <TableHead className="w-[100px]">Screenshot</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -335,12 +340,26 @@ export function EarningsDataTable() {
                 <TableCell>
                   {new Date(earning.week_end_date).toLocaleDateString()}
                 </TableCell>
+                <TableCell>
+                  {earning.screen_shot ? (
+                    <Link
+                      href={earning.screen_shot}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                    >
+                      View
+                    </Link>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
             {(!data?.data || data.data.length === 0) && (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={10}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No records found
