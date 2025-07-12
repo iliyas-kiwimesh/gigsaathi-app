@@ -10,10 +10,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { useEffect, useState, useCallback } from "react";
-import { Search, Loader2, X, Calendar } from "lucide-react";
+import { Search, Loader2, X, Calendar, Filter, RefreshCw } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import debounce from "lodash/debounce";
@@ -41,6 +40,7 @@ interface WeeklyEarning {
   primary_company: string;
   created_at: string;
   screen_shot?: string;
+  status: "DRAFT" | "COMPLETED";
 }
 
 interface WeeklyEarningsResponse {
@@ -57,15 +57,14 @@ export function EarningsDataTable() {
   const [page, setPage] = useState(1);
   const [workAreaSearch, setWorkAreaSearch] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchData = async (searchParams: URLSearchParams) => {
     try {
-      setIsSearching(true);
       setError(null);
       const response = await fetch(`/api/weekly-earnings?${searchParams}`);
       if (!response.ok) {
@@ -87,7 +86,6 @@ export function EarningsDataTable() {
       setData(null);
     } finally {
       setLoading(false);
-      setIsSearching(false);
     }
   };
 
@@ -162,20 +160,45 @@ export function EarningsDataTable() {
     setPage(1);
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    const searchParams = new URLSearchParams({
+      page: page.toString(),
+      limit: "10",
+    });
+
+    if (workAreaSearch.trim()) {
+      searchParams.append("work_area", workAreaSearch.trim());
+    }
+    if (mobileNumber.trim()) {
+      searchParams.append("mobile_number", mobileNumber.trim());
+    }
+    if (startDate) {
+      searchParams.append("start_date", startDate.toISOString());
+    }
+    if (endDate) {
+      searchParams.append("end_date", endDate.toISOString());
+    }
+
+    await fetchData(searchParams);
+    setIsRefreshing(false);
+  };
+
   if (loading && !data) {
     return (
-      <Card className="p-6">
-        <div className="h-[400px] flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400 mx-auto mb-4" />
+          <p className="text-slate-600 dark:text-slate-400">
+            Loading earnings data...
+          </p>
         </div>
-      </Card>
+      </div>
     );
   }
 
-  console.log(data);
-
   return (
-    <Card className="p-6 space-y-6">
+    <div className="space-y-6">
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -183,196 +206,263 @@ export function EarningsDataTable() {
         </Alert>
       )}
 
-      <div className="flex flex-col gap-6">
+      {/* Search and Filter Section */}
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              {totalRecords} records found
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-slate-500" />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Filters & Search
             </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              {totalRecords} records found
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+              />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Search by mobile number..."
               value={mobileNumber}
               onChange={handleMobileNumberChange}
-              className="pl-9 pr-9"
+              className="pl-10 pr-10 h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500"
             />
-            {isSearching && (
-              <Loader2 className="absolute right-9 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
-            )}
             {mobileNumber && (
               <button
                 onClick={clearMobileNumberSearch}
-                className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-3 h-4 w-4 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
+
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Search by work area..."
               value={workAreaSearch}
               onChange={handleWorkAreaChange}
-              className="pl-9 pr-9"
+              className="pl-10 pr-10 h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500"
             />
-            {isSearching && (
-              <Loader2 className="absolute right-9 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
-            )}
             {workAreaSearch && (
               <button
                 onClick={clearWorkAreaSearch}
-                className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-3 h-4 w-4 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
-          <div className="flex gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !startDate && "text-muted-foreground"
-                  )}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {startDate ? (
-                    format(startDate, "PPP")
-                  ) : (
-                    <span>Start Date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <CalendarComponent
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !endDate && "text-muted-foreground"
-                  )}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "PPP") : <span>End Date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <CalendarComponent
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            {(startDate || endDate) && (
+
+          <Popover>
+            <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                size="icon"
-                onClick={clearDateRange}
-                className="flex-shrink-0"
+                className={cn(
+                  "w-full h-11 justify-start text-left font-normal bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500",
+                  !startDate && "text-slate-500"
+                )}
               >
-                <X className="h-4 w-4" />
+                <Calendar className="mr-2 h-4 w-4" />
+                {startDate ? format(startDate, "MMM dd") : "Start Date"}
               </Button>
-            )}
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={startDate}
+                onSelect={setStartDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full h-11 justify-start text-left font-normal bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500",
+                  !endDate && "text-slate-500"
+                )}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {endDate ? format(endDate, "MMM dd") : "End Date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={endDate}
+                onSelect={setEndDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {(startDate || endDate) && (
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearDateRange}
+              className="text-slate-600 dark:text-slate-400"
+            >
+              <X className="mr-2 h-4 w-4" />
+              Clear Date Range
+            </Button>
           </div>
+        )}
+      </div>
+
+      {/* Table Section */}
+      <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-800 shadow-sm">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50 dark:bg-slate-900">
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
+                  Mobile Number
+                </TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
+                  Work Area
+                </TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
+                  Company
+                </TableHead>
+                <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
+                  Work Hours
+                </TableHead>
+                <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
+                  Earnings
+                </TableHead>
+                <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
+                  Expenses
+                </TableHead>
+                <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
+                  Net Earnings
+                </TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
+                  Week Start
+                </TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
+                  Week End
+                </TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
+                  Screenshot
+                </TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
+                  Status
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data?.data?.map((earning) => (
+                <TableRow
+                  key={earning.id}
+                  className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
+                >
+                  <TableCell className="font-medium text-slate-900 dark:text-white">
+                    {earning.mobile_number}
+                  </TableCell>
+                  <TableCell className="text-slate-700 dark:text-slate-300">
+                    {earning.work_area}
+                  </TableCell>
+                  <TableCell className="text-slate-700 dark:text-slate-300">
+                    {earning.primary_company}
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-slate-900 dark:text-white">
+                    {earning.work_hours.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-green-600 dark:text-green-400">
+                    ₹{earning.earnings.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-red-600 dark:text-red-400">
+                    ₹{earning.expenses.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right font-bold text-slate-900 dark:text-white">
+                    ₹{(earning.earnings - earning.expenses).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-slate-600 dark:text-slate-400">
+                    {new Date(earning.week_start_date).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-slate-600 dark:text-slate-400">
+                    {new Date(earning.week_end_date).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {earning.screen_shot ? (
+                      <Link
+                        href={earning.screen_shot}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                      >
+                        View
+                      </Link>
+                    ) : (
+                      <span className="text-slate-400 dark:text-slate-500">
+                        -
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        earning.status === "COMPLETED"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                      }`}
+                    >
+                      {earning.status}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(!data?.data || data.data.length === 0) && (
+                <TableRow>
+                  <TableCell
+                    colSpan={11}
+                    className="text-center py-12 text-slate-500 dark:text-slate-400"
+                  >
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                        <Search className="h-6 w-6 text-slate-400" />
+                      </div>
+                      <p className="text-sm font-medium">No records found</p>
+                      <p className="text-xs">
+                        Try adjusting your search criteria
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[150px]">Mobile Number</TableHead>
-              <TableHead className="w-[150px]">Work Area</TableHead>
-              <TableHead className="w-[150px]">Company</TableHead>
-              <TableHead className="text-right w-[100px]">Work Hours</TableHead>
-              <TableHead className="text-right w-[120px]">Earnings</TableHead>
-              <TableHead className="text-right w-[120px]">Expenses</TableHead>
-              <TableHead className="text-right w-[120px]">
-                Net Earnings
-              </TableHead>
-              <TableHead className="w-[120px]">Week Start</TableHead>
-              <TableHead className="w-[120px]">Week End</TableHead>
-              <TableHead className="w-[100px]">Screenshot</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data?.data?.map((earning) => (
-              <TableRow key={earning.id}>
-                <TableCell className="font-medium">
-                  {earning.mobile_number}
-                </TableCell>
-                <TableCell>{earning.work_area}</TableCell>
-                <TableCell>{earning.primary_company}</TableCell>
-                <TableCell className="text-right">
-                  {earning.work_hours.toLocaleString()}
-                </TableCell>
-                <TableCell className="text-right">
-                  ₹{earning.earnings.toLocaleString()}
-                </TableCell>
-                <TableCell className="text-right">
-                  ₹{earning.expenses.toLocaleString()}
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  ₹{(earning.earnings - earning.expenses).toLocaleString()}
-                </TableCell>
-                <TableCell>
-                  {new Date(earning.week_start_date).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  {new Date(earning.week_end_date).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  {earning.screen_shot ? (
-                    <Link
-                      href={earning.screen_shot}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
-                    >
-                      View
-                    </Link>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-            {(!data?.data || data.data.length === 0) && (
-              <TableRow>
-                <TableCell
-                  colSpan={10}
-                  className="text-center py-8 text-muted-foreground"
-                >
-                  No records found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="text-sm text-slate-600 dark:text-slate-400">
             Page {page} of {totalPages}
           </div>
           <Pagination
@@ -382,6 +472,6 @@ export function EarningsDataTable() {
           />
         </div>
       )}
-    </Card>
+    </div>
   );
 }
