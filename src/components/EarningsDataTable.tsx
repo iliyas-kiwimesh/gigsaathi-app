@@ -29,18 +29,20 @@ import Link from "next/link";
 
 interface WeeklyEarning {
   id: string;
-  user_id: string;
   mobile_number: string;
-  work_area: string;
+  earnings_screenshots: string[];
+  incentives_screenshots: string[];
+  weekly_expenses: number;
+  total_earnings: number;
+  total_incentives: number;
   work_hours: number;
   earnings: number;
   expenses: number;
   week_start_date: string;
   week_end_date: string;
-  primary_company: string;
-  created_at: string;
   screen_shot?: string;
   status: "DRAFT" | "COMPLETED";
+  created_at: string;
 }
 
 interface WeeklyEarningsResponse {
@@ -55,7 +57,6 @@ export function EarningsDataTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [workAreaSearch, setWorkAreaSearch] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -114,9 +115,6 @@ export function EarningsDataTable() {
       limit: "10",
     });
 
-    if (workAreaSearch.trim()) {
-      searchParams.append("work_area", workAreaSearch.trim());
-    }
     if (mobileNumber.trim()) {
       searchParams.append("mobile_number", mobileNumber.trim());
     }
@@ -131,12 +129,8 @@ export function EarningsDataTable() {
     return () => {
       debouncedSearch.cancel();
     };
-  }, [page, workAreaSearch, mobileNumber, startDate, endDate, debouncedSearch]);
+  }, [page, mobileNumber, startDate, endDate, debouncedSearch]);
 
-  const handleWorkAreaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setWorkAreaSearch(e.target.value);
-    setPage(1);
-  };
 
   const handleMobileNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^\d+]/g, "");
@@ -144,10 +138,6 @@ export function EarningsDataTable() {
     setPage(1);
   };
 
-  const clearWorkAreaSearch = () => {
-    setWorkAreaSearch("");
-    setPage(1);
-  };
 
   const clearMobileNumberSearch = () => {
     setMobileNumber("");
@@ -167,9 +157,6 @@ export function EarningsDataTable() {
       limit: "10",
     });
 
-    if (workAreaSearch.trim()) {
-      searchParams.append("work_area", workAreaSearch.trim());
-    }
     if (mobileNumber.trim()) {
       searchParams.append("mobile_number", mobileNumber.trim());
     }
@@ -234,7 +221,7 @@ export function EarningsDataTable() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <Input
@@ -246,24 +233,6 @@ export function EarningsDataTable() {
             {mobileNumber && (
               <button
                 onClick={clearMobileNumberSearch}
-                className="absolute right-3 top-3 h-4 w-4 text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search by work area..."
-              value={workAreaSearch}
-              onChange={handleWorkAreaChange}
-              className="pl-10 pr-10 h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500"
-            />
-            {workAreaSearch && (
-              <button
-                onClick={clearWorkAreaSearch}
                 className="absolute right-3 top-3 h-4 w-4 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="h-4 w-4" />
@@ -342,20 +311,17 @@ export function EarningsDataTable() {
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
                   Mobile Number
                 </TableHead>
-                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
-                  Work Area
-                </TableHead>
-                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
-                  Company
-                </TableHead>
                 <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
                   Work Hours
                 </TableHead>
                 <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
-                  Earnings
+                  Total Earnings
                 </TableHead>
                 <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
-                  Expenses
+                  Total Incentives
+                </TableHead>
+                <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
+                  Weekly Expenses
                 </TableHead>
                 <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
                   Net Earnings
@@ -367,7 +333,7 @@ export function EarningsDataTable() {
                   Week End
                 </TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
-                  Screenshot
+                  Screenshots
                 </TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
                   Status
@@ -383,23 +349,20 @@ export function EarningsDataTable() {
                   <TableCell className="font-medium text-slate-900 dark:text-white">
                     {earning.mobile_number}
                   </TableCell>
-                  <TableCell className="text-slate-700 dark:text-slate-300">
-                    {earning.work_area}
-                  </TableCell>
-                  <TableCell className="text-slate-700 dark:text-slate-300">
-                    {earning.primary_company}
-                  </TableCell>
                   <TableCell className="text-right font-medium text-slate-900 dark:text-white">
                     {earning.work_hours.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right font-medium text-green-600 dark:text-green-400">
-                    ₹{earning.earnings.toLocaleString()}
+                    ₹{earning.total_earnings?.toLocaleString() || earning.earnings?.toLocaleString() || '0'}
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-blue-600 dark:text-blue-400">
+                    ₹{earning.total_incentives?.toLocaleString() || '0'}
                   </TableCell>
                   <TableCell className="text-right font-medium text-red-600 dark:text-red-400">
-                    ₹{earning.expenses.toLocaleString()}
+                    ₹{earning.weekly_expenses?.toLocaleString() || earning.expenses?.toLocaleString() || '0'}
                   </TableCell>
                   <TableCell className="text-right font-bold text-slate-900 dark:text-white">
-                    ₹{(earning.earnings - earning.expenses).toLocaleString()}
+                    ₹{((earning.total_earnings || earning.earnings || 0) + (earning.total_incentives || 0) - (earning.weekly_expenses || earning.expenses || 0)).toLocaleString()}
                   </TableCell>
                   <TableCell className="text-slate-600 dark:text-slate-400">
                     {new Date(earning.week_start_date).toLocaleDateString()}
@@ -408,20 +371,33 @@ export function EarningsDataTable() {
                     {new Date(earning.week_end_date).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    {earning.screen_shot ? (
-                      <Link
-                        href={earning.screen_shot}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-                      >
-                        View
-                      </Link>
-                    ) : (
-                      <span className="text-slate-400 dark:text-slate-500">
-                        -
-                      </span>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      {earning.earnings_screenshots && earning.earnings_screenshots.length > 0 && (
+                        <div className="text-xs text-green-600 dark:text-green-400">
+                          Earnings: {earning.earnings_screenshots.length}
+                        </div>
+                      )}
+                      {earning.incentives_screenshots && earning.incentives_screenshots.length > 0 && (
+                        <div className="text-xs text-blue-600 dark:text-blue-400">
+                          Incentives: {earning.incentives_screenshots.length}
+                        </div>
+                      )}
+                      {earning.screen_shot && (
+                        <Link
+                          href={earning.screen_shot}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                        >
+                          Legacy
+                        </Link>
+                      )}
+                      {(!earning.earnings_screenshots?.length && !earning.incentives_screenshots?.length && !earning.screen_shot) && (
+                        <span className="text-slate-400 dark:text-slate-500 text-xs">
+                          -
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <span
@@ -439,7 +415,7 @@ export function EarningsDataTable() {
               {(!data?.data || data.data.length === 0) && (
                 <TableRow>
                   <TableCell
-                    colSpan={11}
+                    colSpan={10}
                     className="text-center py-12 text-slate-500 dark:text-slate-400"
                   >
                     <div className="flex flex-col items-center space-y-2">

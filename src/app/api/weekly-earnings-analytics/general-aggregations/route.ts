@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { API_CONFIG, API_ENDPOINTS } from "@/config/api";
 
 interface GeneralAggregationsResponse {
-  total_users: number;
+  total_workers: number;
   total_earnings: number;
-  average_weekly_earnings: number;
-  active_work_areas: number;
+  average_earnings_per_hour: number;
+  total_work_hours: number;
+  total_work_areas: number;
 }
 
 export const revalidate = 3600; // 1 hour in seconds
