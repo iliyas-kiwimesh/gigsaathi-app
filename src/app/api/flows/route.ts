@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gigsaathi.com";
+// const API_BASE_URL =
+//   process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gigsaathi.com";
+const API_BASE_URL = "https://e3c2da320ab9.ngrok-free.app";
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const page = searchParams.get("page") || "1";
     const limit = searchParams.get("limit") || "10";
-    const work_area = searchParams.get("work_area");
+    const store_location = searchParams.get("store_location");
     const mobile_number = searchParams.get("mobile_number");
     const start_date = searchParams.get("start_date");
 
@@ -18,8 +19,8 @@ export async function GET(request: NextRequest) {
       limit,
     });
 
-    if (work_area) {
-      queryParams.append("work_area", work_area);
+    if (store_location) {
+      queryParams.append("store_location", store_location);
     }
     if (mobile_number) {
       queryParams.append("mobile_number", mobile_number);

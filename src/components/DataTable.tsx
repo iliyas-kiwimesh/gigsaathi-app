@@ -31,8 +31,8 @@ interface User {
   first_name: string;
   last_name: string;
   mobile_number: string;
-  work_type: string;
-  work_area: string;
+  vehicle_type: string;
+  store_location: string;
   primary_company: string;
   created_at: string;
   start_date: string;
@@ -43,7 +43,7 @@ export function DataTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [workAreaSearch, setWorkAreaSearch] = useState("");
+  const [storeLocationSearch, setStoreLocationSearch] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [startDateSearch, setStartDateSearch] = useState("");
   const [totalPages, setTotalPages] = useState(1);
@@ -102,8 +102,8 @@ export function DataTable() {
       limit: "10",
     });
 
-    if (workAreaSearch.trim()) {
-      searchParams.append("work_area", workAreaSearch.trim());
+    if (storeLocationSearch.trim()) {
+      searchParams.append("store_location", storeLocationSearch.trim());
     }
     if (mobileNumber.trim()) {
       searchParams.append("mobile_number", mobileNumber.trim());
@@ -116,10 +116,10 @@ export function DataTable() {
     return () => {
       debouncedSearch.cancel();
     };
-  }, [page, workAreaSearch, mobileNumber, startDateSearch, debouncedSearch]);
+  }, [page, storeLocationSearch, mobileNumber, startDateSearch, debouncedSearch]);
 
-  const handleWorkAreaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setWorkAreaSearch(e.target.value);
+  const handleStoreLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setStoreLocationSearch(e.target.value);
     setPage(1);
   };
 
@@ -135,8 +135,8 @@ export function DataTable() {
     setPage(1);
   };
 
-  const clearWorkAreaSearch = () => {
-    setWorkAreaSearch("");
+  const clearStoreLocationSearch = () => {
+    setStoreLocationSearch("");
     setPage(1);
   };
 
@@ -151,7 +151,7 @@ export function DataTable() {
   };
 
   const clearAllFilters = () => {
-    setWorkAreaSearch("");
+    setStoreLocationSearch("");
     setMobileNumber("");
     setStartDateSearch("");
     setPage(1);
@@ -164,8 +164,8 @@ export function DataTable() {
       limit: "10",
     });
 
-    if (workAreaSearch.trim()) {
-      searchParams.append("work_area", workAreaSearch.trim());
+    if (storeLocationSearch.trim()) {
+      searchParams.append("store_location", storeLocationSearch.trim());
     }
     if (mobileNumber.trim()) {
       searchParams.append("mobile_number", mobileNumber.trim());
@@ -202,8 +202,8 @@ export function DataTable() {
         limit: "10",
       });
 
-      if (workAreaSearch.trim()) {
-        searchParams.append("work_area", workAreaSearch.trim());
+      if (storeLocationSearch.trim()) {
+        searchParams.append("store_location", storeLocationSearch.trim());
       }
       if (mobileNumber.trim()) {
         searchParams.append("mobile_number", mobileNumber.trim());
@@ -295,14 +295,14 @@ export function DataTable() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Search by work area..."
-              value={workAreaSearch}
-              onChange={handleWorkAreaChange}
+              placeholder="Search by store location..."
+              value={storeLocationSearch}
+              onChange={handleStoreLocationChange}
               className="pl-10 pr-10 h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500"
             />
-            {workAreaSearch && (
+            {storeLocationSearch && (
               <button
-                onClick={clearWorkAreaSearch}
+                onClick={clearStoreLocationSearch}
                 className="absolute right-3 top-3 h-4 w-4 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="h-4 w-4" />
@@ -329,7 +329,7 @@ export function DataTable() {
           </div>
         </div>
 
-        {(workAreaSearch || mobileNumber || startDateSearch) && (
+        {(storeLocationSearch || mobileNumber || startDateSearch) && (
           <div className="flex justify-center">
             <Button
               variant="outline"
@@ -386,10 +386,10 @@ export function DataTable() {
                     {user.mobile_number}
                   </TableCell>
                   <TableCell className="text-slate-700 dark:text-slate-300">
-                    {user.work_type}
+                    {user.vehicle_type}
                   </TableCell>
                   <TableCell className="text-slate-700 dark:text-slate-300">
-                    {user.work_area}
+                    {user.store_location}
                   </TableCell>
                   <TableCell className="text-slate-700 dark:text-slate-300">
                     {user.primary_company}

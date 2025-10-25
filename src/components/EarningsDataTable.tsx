@@ -312,9 +312,6 @@ export function EarningsDataTable() {
                   Mobile Number
                 </TableHead>
                 <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
-                  Work Hours
-                </TableHead>
-                <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
                   Total Earnings
                 </TableHead>
                 <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
@@ -323,17 +320,11 @@ export function EarningsDataTable() {
                 <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
                   Weekly Expenses
                 </TableHead>
-                <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">
-                  Net Earnings
-                </TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
                   Week Start
                 </TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
                   Week End
-                </TableHead>
-                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
-                  Screenshots
                 </TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
                   Status
@@ -349,9 +340,6 @@ export function EarningsDataTable() {
                   <TableCell className="font-medium text-slate-900 dark:text-white">
                     {earning.mobile_number}
                   </TableCell>
-                  <TableCell className="text-right font-medium text-slate-900 dark:text-white">
-                    {earning.work_hours.toLocaleString()}
-                  </TableCell>
                   <TableCell className="text-right font-medium text-green-600 dark:text-green-400">
                     ₹{earning.total_earnings?.toLocaleString() || earning.earnings?.toLocaleString() || '0'}
                   </TableCell>
@@ -361,43 +349,11 @@ export function EarningsDataTable() {
                   <TableCell className="text-right font-medium text-red-600 dark:text-red-400">
                     ₹{earning.weekly_expenses?.toLocaleString() || earning.expenses?.toLocaleString() || '0'}
                   </TableCell>
-                  <TableCell className="text-right font-bold text-slate-900 dark:text-white">
-                    ₹{((earning.total_earnings || earning.earnings || 0) + (earning.total_incentives || 0) - (earning.weekly_expenses || earning.expenses || 0)).toLocaleString()}
-                  </TableCell>
                   <TableCell className="text-slate-600 dark:text-slate-400">
                     {new Date(earning.week_start_date).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-slate-600 dark:text-slate-400">
                     {new Date(earning.week_end_date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1">
-                      {earning.earnings_screenshots && earning.earnings_screenshots.length > 0 && (
-                        <div className="text-xs text-green-600 dark:text-green-400">
-                          Earnings: {earning.earnings_screenshots.length}
-                        </div>
-                      )}
-                      {earning.incentives_screenshots && earning.incentives_screenshots.length > 0 && (
-                        <div className="text-xs text-blue-600 dark:text-blue-400">
-                          Incentives: {earning.incentives_screenshots.length}
-                        </div>
-                      )}
-                      {earning.screen_shot && (
-                        <Link
-                          href={earning.screen_shot}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-                        >
-                          Legacy
-                        </Link>
-                      )}
-                      {(!earning.earnings_screenshots?.length && !earning.incentives_screenshots?.length && !earning.screen_shot) && (
-                        <span className="text-slate-400 dark:text-slate-500 text-xs">
-                          -
-                        </span>
-                      )}
-                    </div>
                   </TableCell>
                   <TableCell>
                     <span
@@ -415,7 +371,7 @@ export function EarningsDataTable() {
               {(!data?.data || data.data.length === 0) && (
                 <TableRow>
                   <TableCell
-                    colSpan={10}
+                    colSpan={7}
                     className="text-center py-12 text-slate-500 dark:text-slate-400"
                   >
                     <div className="flex flex-col items-center space-y-2">
