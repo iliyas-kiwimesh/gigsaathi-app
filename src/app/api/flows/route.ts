@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// const API_BASE_URL =
-//   process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gigsaathi.com";
-const API_BASE_URL = "https://e3c2da320ab9.ngrok-free.app";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gigsaathi.com";
 
 export async function GET(request: NextRequest) {
   try {
