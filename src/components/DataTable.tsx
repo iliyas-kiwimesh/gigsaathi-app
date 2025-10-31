@@ -55,18 +55,6 @@ export function DataTable() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const isValidDate = (value: unknown) => {
-    if (!value) return false;
-    const d = new Date(String(value));
-    return !isNaN(d.getTime());
-  };
-
-  const formatDateYMD = (value: unknown) => {
-    if (!isValidDate(value)) return "";
-    const d = new Date(String(value));
-    return d.toISOString().slice(0, 10);
-  };
-
   const fetchData = async (searchParams: URLSearchParams) => {
     try {
       setError(null);
