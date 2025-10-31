@@ -20,6 +20,7 @@ import {
   Filter,
   Users,
   RefreshCw,
+  Download,
 } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -35,7 +36,9 @@ interface User {
   store_location: string;
   primary_company: string;
   created_at: string;
-  start_date: string;
+  start_date: string | null;
+  work_duration?: string | null;
+  bike_ownership?: string | null;
 }
 
 export function DataTable() {
@@ -50,6 +53,19 @@ export function DataTable() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const isValidDate = (value: unknown) => {
+    if (!value) return false;
+    const d = new Date(String(value));
+    return !isNaN(d.getTime());
+  };
+
+  const formatDateYMD = (value: unknown) => {
+    if (!isValidDate(value)) return "";
+    const d = new Date(String(value));
+    return d.toISOString().slice(0, 10);
+  };
 
   const fetchData = async (searchParams: URLSearchParams) => {
     try {
@@ -223,6 +239,108 @@ export function DataTable() {
     }
   };
 
+  const handleDownloadReport = async () => {
+    try {
+      setIsDownloading(true);
+      // Build search params from current filters
+      const baseParams = new URLSearchParams({
+        limit: "100",
+      });
+      if (storeLocationSearch.trim()) {
+        baseParams.append("store_location", storeLocationSearch.trim());
+      }
+      if (mobileNumber.trim()) {
+        baseParams.append("mobile_number", mobileNumber.trim());
+      }
+      if (startDateSearch.trim()) {
+        baseParams.append("start_date", startDateSearch.trim());
+      }
+
+      // Fetch all pages
+      const allUsers: User[] = [];
+      // First page to get totalPages
+      const firstPageParams = new URLSearchParams(baseParams);
+      firstPageParams.set("page", "1");
+      const firstRes = await fetch(`/api/flows?${firstPageParams.toString()}`);
+      if (!firstRes.ok) {
+        throw new Error(`Failed to fetch users (${firstRes.status})`);
+      }
+      const firstJson = await firstRes.json();
+      const pages = firstJson?.totalPages || 1;
+      if (Array.isArray(firstJson?.data)) {
+        allUsers.push(...firstJson.data);
+      }
+      for (let p = 2; p <= pages; p++) {
+        const params = new URLSearchParams(baseParams);
+        params.set("page", String(p));
+        const res = await fetch(`/api/flows?${params.toString()}`);
+        if (!res.ok) {
+          throw new Error(`Failed to fetch users (page ${p})`);
+        }
+        const json = await res.json();
+        if (Array.isArray(json?.data)) {
+          allUsers.push(...json.data);
+        }
+      }
+
+      const headers = [
+        "name",
+        "mobile_number",
+        "work_type",
+        "vehicle_ownership",
+        "work_area",
+        "company",
+        "work_duration",
+      ];
+
+      const escapeCsv = (value: unknown) => {
+        if (value === null || value === undefined) return "";
+        const str = String(value);
+        if (/[",\n]/.test(str)) {
+          return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      };
+
+      const toCsv = (items: User[]) => {
+        const headerLine = headers.join(",");
+        const lines = items.map((item) => {
+          const row = [
+            `${item.first_name} ${item.last_name}`.trim(),
+            item.mobile_number,
+            item.vehicle_type,
+            item.bike_ownership || "",
+            item.store_location,
+            item.primary_company,
+            item.work_duration || "",
+          ];
+          return row.map(escapeCsv).join(",");
+        });
+        return [headerLine, ...lines].join("\n");
+      };
+
+      const csv = toCsv(allUsers);
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `users_${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      setError(
+        e instanceof Error ? e.message : "Failed to download the report"
+      );
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -258,6 +376,20 @@ export function DataTable() {
             <div className="text-sm text-slate-600 dark:text-slate-400">
               {totalRecords} records found
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadReport}
+              disabled={isDownloading}
+              className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            >
+              {isDownloading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isDownloading ? "Preparing..." : "Download"}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -360,6 +492,9 @@ export function DataTable() {
                   Work Type
                 </TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
+                  Vehicle Ownership
+                </TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
                   Work Area
                 </TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">
@@ -389,15 +524,16 @@ export function DataTable() {
                     {user.vehicle_type}
                   </TableCell>
                   <TableCell className="text-slate-700 dark:text-slate-300">
+                    {user.bike_ownership || "N/A"}
+                  </TableCell>
+                  <TableCell className="text-slate-700 dark:text-slate-300">
                     {user.store_location}
                   </TableCell>
                   <TableCell className="text-slate-700 dark:text-slate-300">
                     {user.primary_company}
                   </TableCell>
                   <TableCell className="text-slate-600 dark:text-slate-400">
-                    {user.start_date
-                      ? new Date(user.start_date).toLocaleDateString()
-                      : "N/A"}
+                    {user.work_duration || "N/A"}
                   </TableCell>
                   <TableCell>
                     <Button
