@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import { Roboto_Slab } from "next/font/google";
 import "./globals.css";
 import { NavigationBar } from "@/components/NavigationBar";
 import { AuthProvider } from "@/providers/AuthProvider";
-
-const robotoSlab = Roboto_Slab({
-  variable: "--font-roboto-slab",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "GigSaathi Dashboard",
@@ -22,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${robotoSlab.className} antialiased min-h-screen bg-background`}
+        className={`antialiased min-h-screen bg-background`}
       >
         <AuthProvider>
           <NavigationBar />
