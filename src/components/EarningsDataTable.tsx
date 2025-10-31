@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { useEffect, useState, useCallback } from "react";
-import { Search, Loader2, X, Calendar, Filter, RefreshCw } from "lucide-react";
+import { Search, Loader2, X, Calendar, Filter, RefreshCw, Download } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import debounce from "lodash/debounce";
@@ -62,6 +62,7 @@ export function EarningsDataTable() {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const fetchData = async (searchParams: URLSearchParams) => {
     try {
@@ -170,6 +171,82 @@ export function EarningsDataTable() {
     setIsRefreshing(false);
   };
 
+  const handleDownloadReport = async () => {
+    try {
+      setIsDownloading(true);
+      const response = await fetch(
+        "https://api.gigsaathi.com/weekly-earnings/reports"
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to download report (${response.status})`);
+      }
+      const json = await response.json();
+      const rows: WeeklyEarning[] = json?.data || [];
+
+      const headers = [
+        "mobile_number",
+        "earnings_screenshots",
+        "incentives_screenshots",
+        "weekly_expenses",
+        "total_incentives",
+        "total_earnings",
+        "status",
+        "week_start_date",
+        "week_end_date",
+      ];
+
+      const escapeCsv = (value: unknown) => {
+        if (value === null || value === undefined) return "";
+        const str = String(value);
+        if (/[",\n]/.test(str)) {
+          return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      };
+
+      const toCsv = (items: WeeklyEarning[]) => {
+        const headerLine = headers.join(",");
+        const lines = items.map((item) => {
+          const earningsShots = (item.earnings_screenshots || []).join(" ");
+          const incentivesShots = (item.incentives_screenshots || []).join(" ");
+          const row = [
+            item.mobile_number,
+            earningsShots,
+            incentivesShots,
+            item.weekly_expenses ?? item.expenses ?? 0,
+            item.total_incentives ?? 0,
+            item.total_earnings ?? item.earnings ?? 0,
+            item.status,
+            item.week_start_date,
+            item.week_end_date,
+          ];
+          return row.map(escapeCsv).join(",");
+        });
+        return [headerLine, ...lines].join("\n");
+      };
+
+      const csv = toCsv(rows);
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `weekly_earnings_report_${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      setError(
+        e instanceof Error ? e.message : "Failed to download the report"
+      );
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -205,6 +282,20 @@ export function EarningsDataTable() {
             <div className="text-sm text-slate-600 dark:text-slate-400">
               {totalRecords} records found
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadReport}
+              disabled={isDownloading}
+              className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            >
+              {isDownloading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isDownloading ? "Preparing..." : "Download"}
+            </Button>
             <Button
               variant="outline"
               size="sm"
